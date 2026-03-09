@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreenIT + Lighthouse Otomasyon</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #242837;
+      --border: #2e3348;
+      --text: #e4e7f1;
+      --text2: #8b90a5;
+      --green: #34d399;
+      --green-dim: #065f46;
+      --blue: #60a5fa;
+      --blue-dim: #1e3a5f;
+      --orange: #fbbf24;
+      --orange-dim: #78350f;
+      --red: #f87171;
+      --red-dim: #7f1d1d;
+      --purple: #a78bfa;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ─── HEADER ─── */
+    .header {
+      background: linear-gradient(135deg, #065f46 0%, #1e3a5f 100%);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .header h1 span { font-size: 24px; }
+    .header .status-badge {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .status-badge.idle { background: var(--surface2); color: var(--text2); }
+    .status-badge.running { background: var(--green-dim); color: var(--green); animation: pulse 2s infinite; }
+    .status-badge.stopped { background: var(--orange-dim); color: var(--orange); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* ─── LAYOUT ─── */
+    .container {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 0;
+      height: calc(100vh - 68px);
+    }
+
+    /* ─── SIDEBAR (SOL) ─── */
+    .sidebar {
+      grid-row: 1 / 3;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-title {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ─── AYARLAR ─── */
+    .settings-panel {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .settings-row:last-child { margin-bottom: 0; }
+    .settings-row label { font-size: 13px; color: var(--text2); }
+    .settings-row input[type="number"] {
+      width: 70px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-size: 14px;
+      text-align: center;
+    }
+    .settings-row input[type="text"] {
+      width: 160px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    /* ─── URL EKLEME ─── */
+    .add-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .input-group input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 13px;
+    }
+    .input-group input:focus { outline: none; border-color: var(--green); }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { filter: brightness(1.15); }
+    .btn:active { transform: scale(0.97); }
+    .btn-green { background: var(--green); color: #000; }
+    .btn-blue { background: var(--blue); color: #000; }
+    .btn-red { background: var(--red); color: #000; }
+    .btn-orange { background: var(--orange); color: #000; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+    .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    .bulk-textarea {
+      width: 100%;
+      height: 80px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: monospace;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+    .bulk-textarea:focus { outline: none; border-color: var(--green); }
+    .bulk-textarea::placeholder { color: var(--text2); }
+
+    .toggle-bulk {
+      font-size: 12px;
+      color: var(--blue);
+      cursor: pointer;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+    .toggle-bulk:hover { text-decoration: underline; }
+
+    /* ─── KUYRUK LİSTESİ ─── */
+    .queue-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .queue-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .queue-item:hover { background: var(--surface2); }
+    .queue-item.running { background: var(--green-dim); border-left: 3px solid var(--green); }
+    .queue-item.done { opacity: 0.7; }
+    .queue-item.error { border-left: 3px solid var(--red); }
+    .queue-item.skipped { opacity: 0.4; }
+
+    .qi-status {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .qi-status.pending { background: var(--surface2); }
+    .qi-status.running { background: var(--green-dim); }
+    .qi-status.done { background: var(--green-dim); }
+    .qi-status.error { background: var(--red-dim); }
+    .qi-status.skipped { background: var(--surface2); }
+
+    .qi-info { flex: 1; min-width: 0; }
+    .qi-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qi-url { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .qi-delete {
+      opacity: 0;
+      cursor: pointer;
+      color: var(--red);
+      font-size: 16px;
+      padding: 4px;
+      transition: opacity 0.15s;
+    }
+    .queue-item:hover .qi-delete { opacity: 1; }
+
+    /* ─── KONTROL BUTONLARI ─── */
+    .controls {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+    .controls .btn { flex: 1; justify-content: center; padding: 10px; }
+
+    /* ─── ANA İÇERİK (SAĞ) ─── */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ─── İLERLEME BÖLÜMÜ ─── */
+    .progress-section {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .progress-overall {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .progress-overall .label { font-size: 13px; color: var(--text2); white-space: nowrap; }
+    .progress-overall .count { font-size: 14px; font-weight: 700; color: var(--green); white-space: nowrap; }
+
+    .progress-bar-container {
+      flex: 1;
+      height: 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+    .progress-bar.green { background: linear-gradient(90deg, #059669, #34d399); }
+    .progress-bar.blue { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+    .progress-bar.orange { background: linear-gradient(90deg, #d97706, #fbbf24); }
+
+    .phase-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .phase-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .phase-card.active { border-color: var(--green); background: var(--green-dim); }
+    .phase-card .phase-icon { font-size: 22px; margin-bottom: 6px; }
+    .phase-card .phase-name { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+    .phase-card .phase-progress { font-size: 18px; font-weight: 700; }
+    .phase-card .phase-bar {
+      margin-top: 8px;
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .phase-card .phase-bar-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    /* ─── SONUÇLAR TABLOSU ─── */
+    .results-section {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .tab {
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text2);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* Sonuçlar tablosu */
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .results-table th {
+      background: var(--surface2);
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+    }
+    .results-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .results-table tr:hover td { background: var(--surface); }
+
+    .grade-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .grade-A { background: #065f46; color: #34d399; }
+    .grade-B { background: #14532d; color: #86efac; }
+    .grade-C { background: #713f12; color: #fde047; }
+    .grade-D { background: #78350f; color: #fbbf24; }
+    .grade-E { background: #7c2d12; color: #fb923c; }
+    .grade-F { background: #7f1d1d; color: #fca5a5; }
+    .grade-G { background: #7f1d1d; color: #f87171; }
+
+    /* ─── LOG (Terminal Tarzı) ─── */
+    .log-container {
+      padding: 0;
+      font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      background: #0a0c10;
+      min-height: 100%;
+    }
+    .log-entry {
+      display: flex;
+      gap: 0;
+      padding: 1px 14px;
+      border-left: 3px solid transparent;
+      transition: background 0.1s;
+    }
+    .log-entry:hover { background: rgba(255,255,255,0.03); }
+    .log-entry.success { border-left-color: var(--green); }
+    .log-entry.error { border-left-color: var(--red); background: rgba(248,113,113,0.05); }
+    .log-entry.warning { border-left-color: var(--orange); }
+    .log-time {
+      color: #555;
+      flex-shrink: 0;
+      min-width: 70px;
+      user-select: none;
+    }
+    .log-type {
+      flex-shrink: 0;
+      min-width: 20px;
+      text-align: center;
+      margin-right: 6px;
+    }
+    .log-msg { word-break: break-all; }
+    .log-msg.info { color: #b0b8d1; }
+    .log-msg.success { color: var(--green); }
+    .log-msg.warning { color: var(--orange); }
+    .log-msg.error { color: var(--red); font-weight: 600; }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: var(--text2);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state p { font-size: 14px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <h1><span>🌿</span> GreenIT + Lighthouse Otomasyon</h1>
+  <div class="status-badge idle" id="statusBadge">Hazır</div>
+</div>
+
+<!-- ═══ LAYOUT ═══ -->
+<div class="container">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <div class="sidebar">
+
+    <!-- Ayarlar -->
+    <div class="panel-title">Ayarlar</div>
+    <div class="settings-panel">
+      <div class="settings-row">
+        <label>GreenIT Ölçüm</label>
+        <input type="number" id="greenitCount" value="20" min="1" max="50">
+      </div>
+      <div class="settings-row">
+        <label>Lighthouse Ölçüm</label>
+        <input type="number" id="lighthouseCount" value="10" min="1" max="50">
+      </div>
+      <div class="settings-row">
+        <label>Çıktı Klasörü</label>
+        <input type="text" id="outputDir" value="./results">
+      </div>
+      <div style="text-align: right; margin-top: 8px;">
+        <button class="btn btn-ghost btn-sm" onclick="saveSettings()">Kaydet</button>
+      </div>
+    </div>
+
+    <!-- URL Ekleme -->
+    <div class="panel-title">URL Ekle</div>
+    <div class="add-section">
+      <!-- Tekli ekleme -->
+      <div id="singleAdd">
+        <div class="input-group">
+          <input type="text" id="inputName" placeholder="Kurum Adı">
+        </div>
+        <div class="input-group">
+          <input type="text" id="inputUrl" placeholder="https://www.example.com">
+          <button class="btn btn-green btn-sm" onclick="addSingleUrl()">+</button>
+        </div>
+        <span class="toggle-bulk" onclick="toggleBulk()">Toplu ekle...</span>
+      </div>
+
+      <!-- Toplu ekleme -->
+      <div id="bulkAdd" class="hidden">
+        <textarea class="bulk-textarea" id="bulkText" placeholder="Her satır: KURUM_ADI|URL&#10;Örnek:&#10;TEDAŞ|https://www.tedas.gov.tr&#10;AFAD|https://www.afad.gov.tr"></textarea>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-green btn-sm" onclick="addBulkUrls()">Ekle</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleBulk()">Tekli moda dön</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kuyruk -->
+    <div class="panel-title">
+      Kuyruk <span id="queueCount">0</span>
+    </div>
+    <div class="queue-list" id="queueList">
+      <div class="empty-state" id="queueEmpty">
+        <div class="icon">📋</div>
+        <p>Kuyruk boş - URL ekleyin</p>
+      </div>
+    </div>
+
+    <!-- Kontroller -->
+    <div class="controls">
+      <button class="btn btn-green" id="btnStart" onclick="startTests()">▶ Başlat</button>
+      <button class="btn btn-red hidden" id="btnStop" onclick="stopTests()">⬛ Durdur</button>
+      <button class="btn btn-ghost" id="btnClear" onclick="clearQueue()">Temizle</button>
+    </div>
+  </div>
+
+  <!-- ═══ ANA İÇERİK ═══ -->
+  <div class="main-content">
+
+    <!-- İlerleme -->
+    <div class="progress-section">
+      <div class="progress-overall">
+        <span class="label">Genel İlerleme:</span>
+        <div class="progress-bar-container">
+          <div class="progress-bar green" id="overallBar" style="width: 0%"></div>
+        </div>
+        <span class="count" id="overallCount">0 / 0</span>
+      </div>
+      <div class="phase-cards">
+        <div class="phase-card" id="phaseCardCold">
+          <div class="phase-icon">❄️</div>
+          <div class="phase-name">Cold Cache</div>
+          <div class="phase-progress" id="coldProgress">-</div>
+          <div class="phase-bar"><div class="phase-bar-fill" id="coldBar" style="width: 0%"></div></div>
+        </div>
+        <div class="phase-card" id="phaseCardWarm">
+          <div class="phase-icon">🔥</div>
+          <div class="phase-name">Warm Cache</div>
+          <div class="phase-progress" id="warmProgress">-</div>
+          <div class="phase-bar"><div class="phase-bar-fill" id="warmBar" style="width: 0%"></div></div>
+        </div>
+        <div class="phase-card" id="phaseCardLh">
+          <div class="phase-icon">💡</div>
+          <div class="phase-name">Lighthouse</div>
+          <div class="phase-progress" id="lhProgress">-</div>
+          <div class="phase-bar"><div class="phase-bar-fill" id="lhBar" style="width: 0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sekmeler -->
+    <div class="tab-bar">
+      <div class="tab" data-tab="results" onclick="switchTab('results')">Sonuçlar</div>
+      <div class="tab active" data-tab="log" onclick="switchTab('log')">Log <span id="logCount" style="opacity:0.5;font-size:11px"></span></div>
+    </div>
+
+    <div class="tab-content">
+      <!-- Sonuçlar -->
+      <div class="tab-pane" id="tabResults">
+        <div class="empty-state" id="resultsEmpty">
+          <div class="icon">📊</div>
+          <p>Henüz sonuç yok</p>
+        </div>
+        <table class="results-table hidden" id="resultsTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Kurum</th>
+              <th>Cold EcoIndex</th>
+              <th>Warm EcoIndex</th>
+              <th>FCP (ms)</th>
+              <th>LCP (ms)</th>
+              <th>Speed Index</th>
+              <th>Dosya</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Log -->
+      <div class="tab-pane active" id="tabLog">
+        <div class="log-container" id="logContainer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let state = {
+  isRunning: false,
+  queue: [],
+  currentIndex: -1,
+  phase: '',
+  phaseProgress: 0,
+  phaseTotal: 0,
+  settings: { greenitCount: 20, lighthouseCount: 10, output: './results' }
+};
+
+// ═══════════════════════════════════════
+// SSE BAĞLANTISI
+// ═══════════════════════════════════════
+let evtSource;
+function connectSSE() {
+  evtSource = new EventSource('/api/events');
+
+  evtSource.addEventListener('state', (e) => {
+    state = JSON.parse(e.data);
+    renderAll();
+  });
+
+  evtSource.addEventListener('log', (e) => {
+    const entry = JSON.parse(e.data);
+    appendLog(entry);
+  });
+
+  evtSource.addEventListener('logHistory', (e) => {
+    const logs = JSON.parse(e.data);
+    const container = document.getElementById('logContainer');
+    container.innerHTML = '';
+    logs.forEach(appendLog);
+  });
+
+  evtSource.onerror = () => {
+    setTimeout(connectSSE, 3000);
+  };
+}
+connectSSE();
+
+// ═══════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════
+function renderAll() {
+  renderStatus();
+  renderQueue();
+  renderProgress();
+  renderResults();
+  renderSettings();
+}
+
+function renderStatus() {
+  const badge = document.getElementById('statusBadge');
+  const btnStart = document.getElementById('btnStart');
+  const btnStop = document.getElementById('btnStop');
+
+  if (state.isRunning) {
+    badge.className = 'status-badge running';
+    badge.textContent = 'Çalışıyor';
+    btnStart.classList.add('hidden');
+    btnStop.classList.remove('hidden');
+  } else {
+    badge.className = 'status-badge idle';
+    badge.textContent = 'Hazır';
+    btnStart.classList.remove('hidden');
+    btnStop.classList.add('hidden');
+  }
+}
+
+function renderQueue() {
+  const list = document.getElementById('queueList');
+  const empty = document.getElementById('queueEmpty');
+  const count = document.getElementById('queueCount');
+
+  count.textContent = state.queue.length;
+
+  if (state.queue.length === 0) {
+    list.innerHTML = '';
+    list.appendChild(empty);
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  list.innerHTML = state.queue.map((item, i) => {
+    const icons = { pending: '⏳', running: '▶️', done: '✅', error: '❌', skipped: '⏭️' };
+    return `
+      <div class="queue-item ${item.status}">
+        <div class="qi-status ${item.status}">${icons[item.status] || '⏳'}</div>
+        <div class="qi-info">
+          <div class="qi-name">${esc(item.name)}</div>
+          <div class="qi-url">${esc(item.url)}</div>
+        </div>
+        ${item.status === 'pending' ? `<span class="qi-delete" onclick="deleteFromQueue(${i})">✕</span>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderProgress() {
+  const doneCount = state.queue.filter(q => q.status === 'done').length;
+  const total = state.queue.length;
+
+  document.getElementById('overallCount').textContent = `${doneCount} / ${total}`;
+  document.getElementById('overallBar').style.width = total ? `${(doneCount / total) * 100}%` : '0%';
+
+  // Phase kartları
+  const phases = ['cold', 'warm', 'lighthouse'];
+  const cardIds = ['phaseCardCold', 'phaseCardWarm', 'phaseCardLh'];
+  const progressIds = ['coldProgress', 'warmProgress', 'lhProgress'];
+  const barIds = ['coldBar', 'warmBar', 'lhBar'];
+
+  phases.forEach((p, i) => {
+    const card = document.getElementById(cardIds[i]);
+    const isActive = state.phase === p;
+    card.className = 'phase-card' + (isActive ? ' active' : '');
+
+    if (isActive) {
+      document.getElementById(progressIds[i]).textContent = `${state.phaseProgress} / ${state.phaseTotal}`;
+      document.getElementById(barIds[i]).style.width = state.phaseTotal ? `${(state.phaseProgress / state.phaseTotal) * 100}%` : '0%';
+    } else if (!state.isRunning) {
+      document.getElementById(progressIds[i]).textContent = '-';
+      document.getElementById(barIds[i]).style.width = '0%';
+    }
+  });
+}
+
+function renderResults() {
+  const doneItems = state.queue.filter(q => q.status === 'done' && q.results);
+  const empty = document.getElementById('resultsEmpty');
+  const table = document.getElementById('resultsTable');
+  const body = document.getElementById('resultsBody');
+
+  if (doneItems.length === 0) {
+    empty.classList.remove('hidden');
+    table.classList.add('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  table.classList.remove('hidden');
+
+  body.innerHTML = doneItems.map((item, i) => {
+    const r = item.results;
+    return `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${esc(item.name)}</strong></td>
+        <td>${r.coldAvgEcoIndex}</td>
+        <td>${r.warmAvgEcoIndex}</td>
+        <td>${r.avgFCP}</td>
+        <td>${r.avgLCP}</td>
+        <td>${r.avgSpeedIndex}</td>
+        <td style="font-size:11px; color:var(--text2)">${esc(r.excelPath)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderSettings() {
+  document.getElementById('greenitCount').value = state.settings.greenitCount;
+  document.getElementById('lighthouseCount').value = state.settings.lighthouseCount;
+  document.getElementById('outputDir').value = state.settings.output;
+}
+
+let logLineCount = 0;
+function appendLog(entry) {
+  const container = document.getElementById('logContainer');
+  const div = document.createElement('div');
+  div.className = `log-entry ${entry.type}`;
+  const icons = { info: '·', success: '✓', warning: '⚠', error: '✗' };
+  div.innerHTML = `<span class="log-time">${esc(entry.time)}</span><span class="log-type">${icons[entry.type] || '·'}</span><span class="log-msg ${entry.type}">${esc(entry.message)}</span>`;
+  container.appendChild(div);
+  container.parentElement.scrollTop = container.parentElement.scrollHeight;
+  logLineCount++;
+  document.getElementById('logCount').textContent = `(${logLineCount})`;
+}
+
+// ═══════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════
+async function addSingleUrl() {
+  const name = document.getElementById('inputName').value.trim();
+  const url = document.getElementById('inputUrl').value.trim();
+  if (!name || !url) return alert('Kurum adı ve URL gerekli');
+
+  await fetch('/api/queue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, url })
+  });
+
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputUrl').value = '';
+  document.getElementById('inputName').focus();
+}
+
+async function addBulkUrls() {
+  const text = document.getElementById('bulkText').value.trim();
+  if (!text) return;
+
+  const lines = text.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+  const urls = lines.map(line => {
+    const parts = line.split('|').map(p => p.trim());
+    if (parts.length >= 2) return { name: parts[0], url: parts[1] };
+    return { name: parts[0], url: parts[0] };
+  });
+
+  await fetch('/api/queue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ urls })
+  });
+
+  document.getElementById('bulkText').value = '';
+}
+
+async function deleteFromQueue(idx) {
+  await fetch(`/api/queue/${idx}`, { method: 'DELETE' });
+}
+
+async function clearQueue() {
+  if (state.isRunning) return alert('Testler çalışırken temizlenemez');
+  if (!confirm('Kuyruk ve log temizlensin mi?')) return;
+  await fetch('/api/queue/clear', { method: 'POST' });
+}
+
+async function saveSettings() {
+  await fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      greenitCount: document.getElementById('greenitCount').value,
+      lighthouseCount: document.getElementById('lighthouseCount').value,
+      output: document.getElementById('outputDir').value
+    })
+  });
+}
+
+async function startTests() {
+  await saveSettings();
+  const res = await fetch('/api/start', { method: 'POST' });
+  const data = await res.json();
+  if (data.error) alert(data.error);
+}
+
+async function stopTests() {
+  await fetch('/api/stop', { method: 'POST' });
+}
+
+function toggleBulk() {
+  document.getElementById('singleAdd').classList.toggle('hidden');
+  document.getElementById('bulkAdd').classList.toggle('hidden');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab' + tab.charAt(0).toUpperCase() + tab.slice(1)));
+}
+
+// Enter tuşu ile ekle
+document.getElementById('inputUrl').addEventListener('keypress', (e) => { if (e.key === 'Enter') addSingleUrl(); });
+document.getElementById('inputName').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('inputUrl').focus(); });
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+</script>
+
+</body>
+</html>

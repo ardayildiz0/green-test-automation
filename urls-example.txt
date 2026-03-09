@@ -1,0 +1,7 @@
+# GreenIT + Lighthouse Test URL Listesi
+# Format: KURUM_ADI|URL
+# '#' ile başlayan satırlar yorum satırıdır
+
+TEDAŞ|https://www.tedas.gov.tr
+AFAD|https://www.afad.gov.tr
+Adalet Bakanlığı|https://www.adalet.gov.tr
