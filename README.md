@@ -1,6 +1,6 @@
 # GreenIT + Lighthouse Otomasyon Scripti
 
-SENG434 - Green Software Engineering dersi için otomatik web analiz aracı. Kurumlara ait web sitelerine GreenIT (EcoIndex, CO2, su tüketimi) ve Lighthouse (FCP, LCP, TBT, CLS, Speed Index) testleri uygular, sonuçları kurum bazında Excel dosyalarına kaydeder.
+SENG434 - Green Software Engineering dersi için otomatik web analiz aracı. Kurumlara ait web sitelerine GreenIT (EcoIndex, CO2, su tüketimi) ve Lighthouse (FCP, LCP, TBT, CLS, Speed Index) testleri uygular, sonuçları kurum bazında Excel dosyalarına ve DOCX raporlarına kaydeder.
 
 ## Kurulum
 
@@ -61,7 +61,9 @@ Adalet Bakanlığı|https://www.adalet.gov.tr
 
 ## Çıktı
 
-Her kurum için bir Excel dosyası oluşturulur (`KURUM_ADI_results.xlsx`):
+Her kurum için iki dosya oluşturulur:
+
+### Excel Dosyası (`KURUM_ADI_results.xlsx`)
 
 | Sheet | İçerik | Ölçüm |
 |-------|--------|-------|
@@ -69,6 +71,21 @@ Her kurum için bir Excel dosyası oluşturulur (`KURUM_ADI_results.xlsx`):
 | Warm Cache GreenIT | Aynı metrikler (cache'li) | 20x |
 | Lighthouse Metrics | FCP, LCP, TBT, CLS, Speed Index | 10x |
 | Summary | Ortalama Grade (renk kodlu), not aralıkları tablosu, tüm metriklerin ortalamaları | - |
+
+### DOCX Rapor (`KURUM_ADI_rapor.docx`)
+
+Writing Guideline şablonuna uygun Word raporu otomatik oluşturulur:
+
+| Bölüm | İçerik |
+|-------|--------|
+| 1. ÖZET | Test özeti ve temel sonuçlar |
+| 2. ÇALIŞMANIN AMACI VE KAPSAMI | Amaç, kapsam ve ölçülen metrikler |
+| 3. KULLANILAN ARAÇLAR | GreenIT Analysis ve Lighthouse açıklamaları |
+| 4. Metodoloji | Test yöntemi ve konfigürasyon detayları |
+| 5. ÖLÇÜM SONUÇLARI | 4 tablo: Cold/Warm Cache GreenIT, Lighthouse, Özet |
+| 6. SONUÇLARIN ANALİZİ | Sonuçlara göre otomatik üretilen 6 alt bölüm analiz |
+| 7. İYİLEŞTİRME ÖNERİLERİ | Sonuçlara göre otomatik üretilen 7 öneri |
+| 8. SONUÇ | Genel değerlendirme ve öneriler |
 
 ## EcoIndex Not Aralıkları
 
@@ -99,7 +116,8 @@ green-test-automation/
 │   ├── utils.js          # EcoIndex formülü, CLI parser, yardımcılar
 │   ├── greenitTest.js    # Puppeteer ile GreenIT metrikleri (cold/warm)
 │   ├── lighthouseTest.js # Lighthouse programmatic API
-│   └── excelWriter.js    # ExcelJS ile kurum bazında rapor
+│   ├── excelWriter.js    # ExcelJS ile kurum bazında rapor
+│   └── reportWriter.js   # DOCX rapor oluşturma (docx-js)
 ├── template/
 │   └── template.xlsx     # Orijinal Excel şablonu
 └── urls-example.txt      # Örnek URL dosyası

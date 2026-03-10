@@ -1,0 +1,22 @@
+# SENG434 - Kurum Listesi (21 URL)
+Devlet Opera ve Balesi Genel Müdürlüğü|https://www.operabale.gov.tr
+Jandarma ve Sahil Güvenlik Akademisi|https://www.jsga.edu.tr
+Sahil Güvenlik Komutanlığı|https://www.sg.gov.tr
+Türkiye Elektrik Dağıtım A.Ş. Genel Müdürlüğü|https://www.tedas.gov.tr
+Kozan Belediyesi (Adana)|https://www.kozan.bel.tr
+Polatlı Belediyesi (Ankara)|https://www.polatli.bel.tr
+Gönen Belediyesi (Balıkesir)|https://www.balikesirgonen.bel.tr
+Osmangazi Belediyesi (Bursa)|https://www.osmangazi.bel.tr
+İpsala Belediyesi (Edirne)|https://www.ipsala.bel.tr
+Belen Belediyesi (Hatay)|https://www.belen.bel.tr
+Kartal Belediyesi (İstanbul)|https://www.kartal.bel.tr
+Torbalı Belediyesi (İzmir)|https://www.torbali.bel.tr
+Yahşihan Belediyesi (Kırıkkale)|https://www.yahsihan.bel.tr
+Yeşilyurt Belediyesi (Malatya)|https://www.yesilyurt.bel.tr
+Muş Belediyesi|https://www.mus.bel.tr
+Bafra Belediyesi (Samsun)|https://www.bafra.bel.tr
+Yomra Belediyesi (Trabzon)|https://www.yomra.bel.tr
+Bolu Abant İzzet Baysal Üniversitesi|https://www.ibu.edu.tr
+Fenerbahçe Üniversitesi|https://www.fbu.edu.tr
+Sağlık Bilimleri Üniversitesi|https://www.sbu.edu.tr
+Malatya Turgut Özal Üniversitesi|https://www.ozal.edu.tr

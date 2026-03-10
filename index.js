@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 import { runColdCacheTests, runWarmCacheTests } from './lib/greenitTest.js';
 import { runLighthouseTests } from './lib/lighthouseTest.js';
 import { createExcelReport } from './lib/excelWriter.js';
+import { createDocxReport } from './lib/reportWriter.js';
 import { parseArgs, printHelp, showProgress, normalizeUrl, sanitizeFilename, sleep } from './lib/utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -152,6 +153,27 @@ async function main() {
       await createExcelReport(excelPath, name, url, coldResults, warmResults, lhResults);
       console.log(`✅ Kaydedildi: ${excelPath}`);
 
+      // ─── AŞAMA 5: Ekran Görüntüsü ───
+      console.log('📸 Web sitesi ekran görüntüsü alınıyor...');
+      const screenshotPath = path.join(outputDir, `${safeFilename}_screenshot.png`);
+      try {
+        const ssPage = await browser.newPage();
+        // Masaüstü görünüm, template oranına uygun (1.97:1)
+        await ssPage.setViewport({ width: 1280, height: 649 });
+        await ssPage.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+        await ssPage.screenshot({ path: screenshotPath, fullPage: false });
+        await ssPage.close();
+        console.log(`✅ Screenshot: ${screenshotPath}`);
+      } catch (ssErr) {
+        console.warn(`⚠️  Screenshot alınamadı: ${ssErr.message}`);
+      }
+
+      // ─── AŞAMA 6: DOCX Rapor ───
+      const docxPath = path.join(outputDir, `${safeFilename}_rapor.docx`);
+      console.log('📝 DOCX rapor oluşturuluyor...');
+      await createDocxReport(docxPath, name, url, coldResults, warmResults, lhResults, screenshotPath, args.author);
+      console.log(`✅ Kaydedildi: ${docxPath}`);
+
       const urlDuration = Math.round((Date.now() - urlStartTime) / 1000);
       console.log(`⏱  Süre: ${Math.floor(urlDuration / 60)}dk ${urlDuration % 60}sn\n`);
 
@@ -159,6 +181,7 @@ async function main() {
         name,
         url,
         excelPath,
+        docxPath,
         success: true,
         duration: urlDuration
       });
@@ -194,7 +217,9 @@ async function main() {
 
   results.forEach(r => {
     const status = r.success ? '✅' : '❌';
-    console.log(`  ${status} ${r.name} → ${r.excelPath}`);
+    console.log(`  ${status} ${r.name}`);
+    console.log(`     Excel: ${r.excelPath}`);
+    console.log(`     Rapor: ${r.docxPath}`);
   });
 
   console.log('\n✨ İşlem tamamlandı!\n');

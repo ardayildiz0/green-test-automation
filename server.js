@@ -14,10 +14,20 @@ import puppeteer from 'puppeteer';
 import { runColdCacheTests, runWarmCacheTests } from './lib/greenitTest.js';
 import { runLighthouseTests } from './lib/lighthouseTest.js';
 import { createExcelReport } from './lib/excelWriter.js';
+import { createDocxReport } from './lib/reportWriter.js';
 import { normalizeUrl, sanitizeFilename } from './lib/utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
+
+// Config dosyasından ayarları oku
+let appConfig = {};
+try {
+  const configPath = path.join(__dirname, 'config.json');
+  if (fs.existsSync(configPath)) {
+    appConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  }
+} catch (e) { /* config yoksa varsayılanları kullan */ }
 
 // ═══════════════════════════════════════
 // GLOBAL STATE
@@ -166,9 +176,35 @@ async function runAllTests() {
         const excelPath = path.join(outputDir, `${safeFilename}_results.xlsx`);
         await createExcelReport(excelPath, item.name, item.url, coldResults, warmResults, lhResults);
 
+        // ─── Screenshot ───
+        testState.phase = 'screenshot';
+        addLog('📸 Ekran görüntüsü alınıyor...', 'info');
+        broadcastState();
+
+        const screenshotPath = path.join(outputDir, `${safeFilename}_screenshot.png`);
+        try {
+          const ssPage = await browser.newPage();
+          // Masaüstü görünüm, template oranına uygun (1.97:1)
+          await ssPage.setViewport({ width: 1280, height: 649 });
+          await ssPage.goto(item.url, { waitUntil: 'networkidle2', timeout: 30000 });
+          await ssPage.screenshot({ path: screenshotPath, fullPage: false });
+          await ssPage.close();
+        } catch (ssErr) {
+          addLog(`⚠️ Screenshot alınamadı: ${ssErr.message}`, 'warn');
+        }
+
+        // ─── DOCX Rapor ───
+        testState.phase = 'docx';
+        addLog('📝 DOCX rapor yazılıyor...', 'info');
+        broadcastState();
+
+        const docxPath = path.join(outputDir, `${safeFilename}_rapor.docx`);
+        await createDocxReport(docxPath, item.name, item.url, coldResults, warmResults, lhResults, screenshotPath, appConfig.author || 'Arda Yıldız');
+
         item.status = 'done';
         item.results = {
           excelPath,
+          docxPath,
           coldAvgEcoIndex: avg(coldResults, 'ecoIndex'),
           warmAvgEcoIndex: avg(warmResults, 'ecoIndex'),
           avgFCP: avg(lhResults, 'fcp'),
@@ -176,7 +212,7 @@ async function runAllTests() {
           avgSpeedIndex: avg(lhResults, 'speedIndex')
         };
 
-        addLog(`✅ ${item.name} tamamlandı → ${excelPath}`, 'success');
+        addLog(`✅ ${item.name} tamamlandı → Excel: ${excelPath} | Rapor: ${docxPath}`, 'success');
       } catch (err) {
         item.status = 'error';
         item.error = err.message;

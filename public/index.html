@@ -582,7 +582,7 @@
               <th>FCP (ms)</th>
               <th>LCP (ms)</th>
               <th>Speed Index</th>
-              <th>Dosya</th>
+              <th>Dosyalar</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
@@ -754,7 +754,7 @@ function renderResults() {
         <td>${r.avgFCP}</td>
         <td>${r.avgLCP}</td>
         <td>${r.avgSpeedIndex}</td>
-        <td style="font-size:11px; color:var(--text2)">${esc(r.excelPath)}</td>
+        <td style="font-size:11px; color:var(--text2)">${esc(r.excelPath)}<br>${r.docxPath ? esc(r.docxPath) : ''}</td>
       </tr>
     `;
   }).join('');
