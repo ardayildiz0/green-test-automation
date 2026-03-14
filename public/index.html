@@ -486,6 +486,9 @@
     <div class="add-section">
       <!-- Tekli ekleme -->
       <div id="singleAdd">
+        <div class="input-group" style="margin-bottom: 8px;">
+          <input type="text" id="authorName" placeholder="Hazırlayan Adı Soyadı (Örn: Emirkan Dağ)" onchange="saveSettings()">
+        </div>
         <div class="input-group">
           <input type="text" id="inputName" placeholder="Kurum Adı">
         </div>
@@ -608,7 +611,7 @@ let state = {
   phase: '',
   phaseProgress: 0,
   phaseTotal: 0,
-  settings: { greenitCount: 20, lighthouseCount: 10, output: './results' }
+  settings: { greenitCount: 20, lighthouseCount: 10, output: './results', authorName: '' }
 };
 
 // ═══════════════════════════════════════
@@ -764,6 +767,7 @@ function renderSettings() {
   document.getElementById('greenitCount').value = state.settings.greenitCount;
   document.getElementById('lighthouseCount').value = state.settings.lighthouseCount;
   document.getElementById('outputDir').value = state.settings.output;
+  if (state.settings.authorName) document.getElementById('authorName').value = state.settings.authorName;
 }
 
 let logLineCount = 0;
@@ -828,14 +832,38 @@ async function clearQueue() {
   await fetch('/api/queue/clear', { method: 'POST' });
 }
 
+// Türkçe karakter desteğiyle isim formatlama
+// İlk kelime(ler): Baş harfi büyük, geri kalanı küçük
+// Son kelime (soyad): Tamamı büyük harf
+function formatAuthorName(name) {
+  if (!name || !name.trim()) return '';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toLocaleUpperCase('tr-TR') + parts[0].slice(1).toLocaleLowerCase('tr-TR');
+  }
+  const surname = parts[parts.length - 1].toLocaleUpperCase('tr-TR');
+  const firstNames = parts.slice(0, -1).map(p =>
+    p.charAt(0).toLocaleUpperCase('tr-TR') + p.slice(1).toLocaleLowerCase('tr-TR')
+  );
+  return [...firstNames, surname].join(' ');
+}
+
 async function saveSettings() {
+  const authorInput = document.getElementById('authorName');
+  const rawName = authorInput ? authorInput.value : '';
+  const formattedName = formatAuthorName(rawName);
+  
+  if (formattedName && authorInput) authorInput.value = formattedName;
+
   await fetch('/api/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       greenitCount: document.getElementById('greenitCount').value,
       lighthouseCount: document.getElementById('lighthouseCount').value,
-      output: document.getElementById('outputDir').value
+      output: document.getElementById('outputDir').value,
+      authorName: formattedName
     })
   });
 }

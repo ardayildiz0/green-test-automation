@@ -15,7 +15,7 @@ import { runColdCacheTests, runWarmCacheTests } from './lib/greenitTest.js';
 import { runLighthouseTests } from './lib/lighthouseTest.js';
 import { createExcelReport } from './lib/excelWriter.js';
 import { createDocxReport } from './lib/reportWriter.js';
-import { normalizeUrl, sanitizeFilename } from './lib/utils.js';
+import { normalizeUrl, sanitizeFilename, formatAuthorName } from './lib/utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -47,7 +47,8 @@ let testState = {
   settings: {
     greenitCount: 20,
     lighthouseCount: 10,
-    output: './results'
+    output: './results',
+    authorName: ''
   },
   log: []
 };
@@ -134,25 +135,43 @@ async function runAllTests() {
       broadcastState();
 
       try {
-        // ─── Cold Cache ───
+        // ─── Cold Cache + Warm Cache PARALEL ───
         testState.phase = 'cold';
         testState.phaseProgress = 0;
         testState.phaseTotal = greenitCount;
-        addLog(`❄️  Cold Cache başlıyor (${greenitCount} ölçüm)...`, 'info');
+        addLog(`❄️🔥 Cold + Warm Cache PARALEL başlıyor (${greenitCount} ölçüm)...`, 'info');
         broadcastState();
 
-        const coldResults = await runColdCacheTests(browser, item.url, greenitCount, testOpts('cold', greenitCount));
+        // İki ayrı progress tracker
+        let coldProgress = 0;
+        let warmProgress = 0;
 
-        if (shouldStop) { item.status = 'skipped'; continue; }
+        const coldOpts = {
+          shouldStop: () => shouldStop,
+          onLog: (msg, type) => addLog(msg, type),
+          onProgress: (current) => {
+            coldProgress = current;
+            testState.phase = 'cold';
+            testState.phaseProgress = coldProgress;
+            broadcastState();
+          }
+        };
 
-        // ─── Warm Cache ───
-        testState.phase = 'warm';
-        testState.phaseProgress = 0;
-        testState.phaseTotal = greenitCount;
-        addLog(`🔥 Warm Cache başlıyor (${greenitCount} ölçüm)...`, 'info');
-        broadcastState();
+        const warmOpts = {
+          shouldStop: () => shouldStop,
+          onLog: (msg, type) => addLog(msg, type),
+          onProgress: (current) => {
+            warmProgress = current;
+            testState.phase = 'warm';
+            testState.phaseProgress = warmProgress;
+            broadcastState();
+          }
+        };
 
-        const warmResults = await runWarmCacheTests(browser, item.url, greenitCount, testOpts('warm', greenitCount));
+        const [coldResults, warmResults] = await Promise.all([
+          runColdCacheTests(browser, item.url, greenitCount, coldOpts),
+          runWarmCacheTests(browser, item.url, greenitCount, warmOpts)
+        ]);
 
         if (shouldStop) { item.status = 'skipped'; continue; }
 
@@ -199,7 +218,8 @@ async function runAllTests() {
         broadcastState();
 
         const docxPath = path.join(outputDir, `${safeFilename}_rapor.docx`);
-        await createDocxReport(docxPath, item.name, item.url, coldResults, warmResults, lhResults, screenshotPath, appConfig.author || 'Arda Yıldız');
+        const authorForReport = testState.settings.authorName || appConfig.author || 'Arda Yıldız';
+        await createDocxReport(docxPath, item.name, item.url, coldResults, warmResults, lhResults, screenshotPath, authorForReport);
 
         item.status = 'done';
         item.results = {
@@ -343,6 +363,7 @@ const server = http.createServer(async (req, res) => {
     if (data.greenitCount) testState.settings.greenitCount = parseInt(data.greenitCount);
     if (data.lighthouseCount) testState.settings.lighthouseCount = parseInt(data.lighthouseCount);
     if (data.output) testState.settings.output = data.output;
+    if (data.authorName !== undefined) testState.settings.authorName = data.authorName;
     broadcastState();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, settings: testState.settings }));

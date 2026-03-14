@@ -18,7 +18,7 @@ import { runColdCacheTests, runWarmCacheTests } from './lib/greenitTest.js';
 import { runLighthouseTests } from './lib/lighthouseTest.js';
 import { createExcelReport } from './lib/excelWriter.js';
 import { createDocxReport } from './lib/reportWriter.js';
-import { parseArgs, printHelp, showProgress, normalizeUrl, sanitizeFilename, sleep } from './lib/utils.js';
+import { parseArgs, printHelp, showProgress, normalizeUrl, sanitizeFilename, sleep, formatAuthorName } from './lib/utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -124,18 +124,16 @@ async function main() {
       console.log(`\n🏢 [${urlIdx + 1}/${totalUrls}] ${name}`);
       console.log(`🔗 ${url}\n`);
 
-      // ─── AŞAMA 1: Cold Cache GreenIT ───
-      console.log('❄️  Cold Cache GreenIT Testleri:');
-      const coldResults = await runColdCacheTests(browser, url, args.greenitCount, (current, total) => {
-        showProgress(current, total, `Cold Cache #${current}`);
-      });
-      console.log('');
-
-      // ─── AŞAMA 2: Warm Cache GreenIT ───
-      console.log('🔥 Warm Cache GreenIT Testleri:');
-      const warmResults = await runWarmCacheTests(browser, url, args.greenitCount, (current, total) => {
-        showProgress(current, total, `Warm Cache #${current}`);
-      });
+      // ─── AŞAMA 1+2: Cold + Warm Cache PARALEL ───
+      console.log('❄️🔥 Cold + Warm Cache PARALEL:');
+      const [coldResults, warmResults] = await Promise.all([
+        runColdCacheTests(browser, url, args.greenitCount, (current, total) => {
+          showProgress(current, total, `Cold Cache #${current}`);
+        }),
+        runWarmCacheTests(browser, url, args.greenitCount, (current, total) => {
+          showProgress(current, total, `Warm Cache #${current}`);
+        })
+      ]);
       console.log('');
 
       // ─── AŞAMA 3: Lighthouse ───
@@ -171,7 +169,7 @@ async function main() {
       // ─── AŞAMA 6: DOCX Rapor ───
       const docxPath = path.join(outputDir, `${safeFilename}_rapor.docx`);
       console.log('📝 DOCX rapor oluşturuluyor...');
-      await createDocxReport(docxPath, name, url, coldResults, warmResults, lhResults, screenshotPath, args.author);
+      await createDocxReport(docxPath, name, url, coldResults, warmResults, lhResults, screenshotPath, formatAuthorName(args.author));
       console.log(`✅ Kaydedildi: ${docxPath}`);
 
       const urlDuration = Math.round((Date.now() - urlStartTime) / 1000);
@@ -188,8 +186,8 @@ async function main() {
 
       // URL'ler arası bekleme
       if (urlIdx < urlList.length - 1) {
-        console.log('⏳ Sonraki URL için 5 saniye bekleniyor...\n');
-        await sleep(5000);
+        console.log('⏳ Sonraki URL için 1 saniye bekleniyor...\n');
+        await sleep(1000);
       }
     }
   } catch (err) {
