@@ -203,6 +203,16 @@ async function runAllTests() {
         const screenshotPath = path.join(outputDir, `${safeFilename}_screenshot.png`);
         try {
           const ssPage = await browser.newPage();
+          // Bot tespitini atlatmak için gerçekçi tarayıcı kimliği
+          await ssPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36');
+          await ssPage.setExtraHTTPHeaders({
+            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          });
+          // Headless algılamasını engelle
+          await ssPage.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => false });
+          });
           // Masaüstü görünüm, template oranına uygun (1.97:1)
           await ssPage.setViewport({ width: 1280, height: 649 });
           await ssPage.goto(item.url, { waitUntil: 'networkidle2', timeout: 30000 });

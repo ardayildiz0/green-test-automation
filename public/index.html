@@ -256,64 +256,100 @@
     }
 
     /* ─── İLERLEME BÖLÜMÜ ─── */
-    .progress-section {
-      padding: 20px 24px;
+    .progress-strip {
       border-bottom: 1px solid var(--border);
       background: var(--surface);
     }
-    .progress-overall {
+    .progress-strip-bar {
+      height: 3px;
+      background: var(--bg);
+      position: relative;
+    }
+    .progress-strip-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #059669, #34d399, #60a5fa);
+      border-radius: 0 2px 2px 0;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+    }
+    .progress-strip-content {
       display: flex;
       align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
+      padding: 10px 24px;
+      gap: 10px;
     }
-    .progress-overall .label { font-size: 13px; color: var(--text2); white-space: nowrap; }
-    .progress-overall .count { font-size: 14px; font-weight: 700; color: var(--green); white-space: nowrap; }
-
-    .progress-bar-container {
+    .progress-strip-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text2);
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .progress-strip-count {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .progress-strip-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .progress-phases {
+      display: flex;
+      gap: 8px;
       flex: 1;
-      height: 8px;
-      background: var(--bg);
-      border-radius: 4px;
-      overflow: hidden;
+      justify-content: flex-end;
     }
-    .progress-bar {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.3s;
-    }
-    .progress-bar.green { background: linear-gradient(90deg, #059669, #34d399); }
-    .progress-bar.blue { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-    .progress-bar.orange { background: linear-gradient(90deg, #d97706, #fbbf24); }
-
-    .phase-cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-    .phase-card {
+    .phase-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 20px;
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-      text-align: center;
-    }
-    .phase-card.active { border-color: var(--green); background: var(--green-dim); }
-    .phase-card .phase-icon { font-size: 22px; margin-bottom: 6px; }
-    .phase-card .phase-name { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
-    .phase-card .phase-progress { font-size: 18px; font-weight: 700; }
-    .phase-card .phase-bar {
-      margin-top: 8px;
-      height: 4px;
-      background: var(--surface2);
-      border-radius: 2px;
+      transition: all 0.25s ease;
+      position: relative;
       overflow: hidden;
     }
-    .phase-card .phase-bar-fill {
-      height: 100%;
+    .phase-pill.active {
+      border-color: var(--green);
+      background: var(--green-dim);
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
+    }
+    .phase-pill .phase-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .phase-pill .phase-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text2);
+      white-space: nowrap;
+    }
+    .phase-pill.active .phase-name {
+      color: var(--green);
+    }
+    .phase-pill .phase-progress {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .phase-pill .phase-micro-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
       background: var(--green);
-      border-radius: 2px;
-      transition: width 0.3s;
+      border-radius: 0 1px 0 0;
+      transition: width 0.3s ease;
     }
 
     /* ─── SONUÇLAR TABLOSU ─── */
@@ -482,7 +518,13 @@
     </div>
 
     <!-- URL Ekleme -->
-    <div class="panel-title">URL Ekle</div>
+    <div class="panel-title">
+      <span>URL Ekle</span>
+      <div style="font-size: 16px;">
+        <span style="cursor: pointer; transition: transform 0.2s; display: inline-block;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="setAuthorEmoji('emirkan dağ')" title="Emirkan Dağ">⛰️</span>
+        <span style="cursor: pointer; transition: transform 0.2s; display: inline-block; margin-left: 8px;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" onclick="setAuthorEmoji('arda yıldız')" title="Arda Yıldız">⭐</span>
+      </div>
+    </div>
     <div class="add-section">
       <!-- Tekli ekleme -->
       <div id="singleAdd">
@@ -532,32 +574,33 @@
   <div class="main-content">
 
     <!-- İlerleme -->
-    <div class="progress-section">
-      <div class="progress-overall">
-        <span class="label">Genel İlerleme:</span>
-        <div class="progress-bar-container">
-          <div class="progress-bar green" id="overallBar" style="width: 0%"></div>
-        </div>
-        <span class="count" id="overallCount">0 / 0</span>
+    <div class="progress-strip">
+      <div class="progress-strip-bar">
+        <div class="progress-strip-bar-fill" id="overallBar" style="width: 0%"></div>
       </div>
-      <div class="phase-cards">
-        <div class="phase-card" id="phaseCardCold">
-          <div class="phase-icon">❄️</div>
-          <div class="phase-name">Cold Cache</div>
-          <div class="phase-progress" id="coldProgress">-</div>
-          <div class="phase-bar"><div class="phase-bar-fill" id="coldBar" style="width: 0%"></div></div>
-        </div>
-        <div class="phase-card" id="phaseCardWarm">
-          <div class="phase-icon">🔥</div>
-          <div class="phase-name">Warm Cache</div>
-          <div class="phase-progress" id="warmProgress">-</div>
-          <div class="phase-bar"><div class="phase-bar-fill" id="warmBar" style="width: 0%"></div></div>
-        </div>
-        <div class="phase-card" id="phaseCardLh">
-          <div class="phase-icon">💡</div>
-          <div class="phase-name">Lighthouse</div>
-          <div class="phase-progress" id="lhProgress">-</div>
-          <div class="phase-bar"><div class="phase-bar-fill" id="lhBar" style="width: 0%"></div></div>
+      <div class="progress-strip-content">
+        <span class="progress-strip-label">İlerleme</span>
+        <span class="progress-strip-count" id="overallCount">0 / 0</span>
+        <div class="progress-strip-divider"></div>
+        <div class="progress-phases">
+          <div class="phase-pill" id="phaseCardCold">
+            <span class="phase-icon">❄️</span>
+            <span class="phase-name">Cold</span>
+            <span class="phase-progress" id="coldProgress">-</span>
+            <div class="phase-micro-bar" id="coldBar" style="width: 0%"></div>
+          </div>
+          <div class="phase-pill" id="phaseCardWarm">
+            <span class="phase-icon">🔥</span>
+            <span class="phase-name">Warm</span>
+            <span class="phase-progress" id="warmProgress">-</span>
+            <div class="phase-micro-bar" id="warmBar" style="width: 0%"></div>
+          </div>
+          <div class="phase-pill" id="phaseCardLh">
+            <span class="phase-icon">💡</span>
+            <span class="phase-name">Lighthouse</span>
+            <span class="phase-progress" id="lhProgress">-</span>
+            <div class="phase-micro-bar" id="lhBar" style="width: 0%"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -719,10 +762,10 @@ function renderProgress() {
   phases.forEach((p, i) => {
     const card = document.getElementById(cardIds[i]);
     const isActive = state.phase === p;
-    card.className = 'phase-card' + (isActive ? ' active' : '');
+    card.className = 'phase-pill' + (isActive ? ' active' : '');
 
     if (isActive) {
-      document.getElementById(progressIds[i]).textContent = `${state.phaseProgress} / ${state.phaseTotal}`;
+      document.getElementById(progressIds[i]).textContent = `${state.phaseProgress}/${state.phaseTotal}`;
       document.getElementById(barIds[i]).style.width = state.phaseTotal ? `${(state.phaseProgress / state.phaseTotal) * 100}%` : '0%';
     } else if (!state.isRunning) {
       document.getElementById(progressIds[i]).textContent = '-';
@@ -894,6 +937,16 @@ document.getElementById('inputUrl').addEventListener('keypress', (e) => { if (e.
 document.getElementById('inputName').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('inputUrl').focus(); });
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  // Sayfa yüklendiğinde
+  window.addEventListener('load', fetchState);
+  
+  // Custom Emoji Yazar Seçimi
+  function setAuthorEmoji(name) {
+    const authorInput = document.getElementById('authorName');
+    authorInput.value = name;
+    saveSettings();
+    alert(name);
+  }
 </script>
 
 </body>
