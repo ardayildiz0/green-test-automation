@@ -135,24 +135,18 @@ async function runAllTests() {
       broadcastState();
 
       try {
-        // ─── Cold Cache + Warm Cache PARALEL ───
+        // ─── Cold Cache → Warm Cache SIRALI ───
+        // Sunucu rate-limiting'ini önlemek için sıralı çalıştırılıyor
         testState.phase = 'cold';
         testState.phaseProgress = 0;
         testState.phaseTotal = greenitCount;
-        addLog(`❄️🔥 Cold + Warm Cache PARALEL başlıyor (${greenitCount} ölçüm)...`, 'info');
-        broadcastState();
-
-        // İki ayrı progress tracker
-        let coldProgress = 0;
-        let warmProgress = 0;
 
         const coldOpts = {
           shouldStop: () => shouldStop,
           onLog: (msg, type) => addLog(msg, type),
           onProgress: (current) => {
-            coldProgress = current;
             testState.phase = 'cold';
-            testState.phaseProgress = coldProgress;
+            testState.phaseProgress = current;
             broadcastState();
           }
         };
@@ -161,17 +155,23 @@ async function runAllTests() {
           shouldStop: () => shouldStop,
           onLog: (msg, type) => addLog(msg, type),
           onProgress: (current) => {
-            warmProgress = current;
             testState.phase = 'warm';
-            testState.phaseProgress = warmProgress;
+            testState.phaseProgress = current;
             broadcastState();
           }
         };
 
-        const [coldResults, warmResults] = await Promise.all([
-          runColdCacheTests(browser, item.url, greenitCount, coldOpts),
-          runWarmCacheTests(browser, item.url, greenitCount, warmOpts)
-        ]);
+        addLog(`❄️ Cold Cache başlıyor (${greenitCount} ölçüm)...`, 'info');
+        broadcastState();
+        const coldResults = await runColdCacheTests(browser, item.url, greenitCount, coldOpts);
+
+        if (shouldStop) { item.status = 'skipped'; continue; }
+
+        addLog(`🔥 Warm Cache başlıyor (${greenitCount} ölçüm)...`, 'info');
+        testState.phase = 'warm';
+        testState.phaseProgress = 0;
+        broadcastState();
+        const warmResults = await runWarmCacheTests(browser, item.url, greenitCount, warmOpts);
 
         if (shouldStop) { item.status = 'skipped'; continue; }
 
