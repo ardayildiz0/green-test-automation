@@ -48,7 +48,9 @@ let testState = {
     greenitCount: 20,
     lighthouseCount: 10,
     output: './results',
-    authorName: ''
+    authorName: '',
+    advisorName: '',
+    reportDate: ''
   },
   log: []
 };
@@ -229,7 +231,9 @@ async function runAllTests() {
 
         const docxPath = path.join(outputDir, `${safeFilename}_rapor.docx`);
         const authorForReport = testState.settings.authorName || appConfig.author || 'Arda Yıldız';
-        await createDocxReport(docxPath, item.name, item.url, coldResults, warmResults, lhResults, screenshotPath, authorForReport);
+        const advisorForReport = testState.settings.advisorName || appConfig.advisor || '';
+        const dateForReport = testState.settings.reportDate || appConfig.reportDate || '';
+        await createDocxReport(docxPath, item.name, item.url, coldResults, warmResults, lhResults, screenshotPath, authorForReport, advisorForReport, dateForReport);
 
         item.status = 'done';
         item.results = {
@@ -374,6 +378,8 @@ const server = http.createServer(async (req, res) => {
     if (data.lighthouseCount) testState.settings.lighthouseCount = parseInt(data.lighthouseCount);
     if (data.output) testState.settings.output = data.output;
     if (data.authorName !== undefined) testState.settings.authorName = data.authorName;
+    if (data.advisorName !== undefined) testState.settings.advisorName = data.advisorName;
+    if (data.reportDate !== undefined) testState.settings.reportDate = data.reportDate;
     broadcastState();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, settings: testState.settings }));

@@ -937,8 +937,7 @@ document.getElementById('inputUrl').addEventListener('keypress', (e) => { if (e.
 document.getElementById('inputName').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('inputUrl').focus(); });
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-  // Sayfa yüklendiğinde
-  window.addEventListener('load', fetchState);
+
   
   // Custom Emoji Yazar Seçimi
   function setAuthorEmoji(name) {
