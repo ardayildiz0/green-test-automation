@@ -9,13 +9,15 @@
  *   node index.js --file urls.txt [--count 20] [--output ./results]
  */
 
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+puppeteer.use(StealthPlugin());
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { runColdCacheTests, runWarmCacheTests } from './lib/greenitTest.js';
-import { runLighthouseTests } from './lib/lighthouseTest.js';
+import { runColdCacheTests, runWarmCacheTests, waitThroughCloudflare } from './lib/greenitTest.js';
+import { runLighthouseTests, runLighthouseViaPSI, runLighthouseAuto } from './lib/lighthouseTest.js';
 import { createExcelReport } from './lib/excelWriter.js';
 import { createDocxReport } from './lib/reportWriter.js';
 import { parseArgs, printHelp, showProgress, normalizeUrl, sanitizeFilename, sleep, formatAuthorName } from './lib/utils.js';
@@ -136,10 +138,12 @@ async function main() {
       ]);
       console.log('');
 
-      // ─── AŞAMA 3: Lighthouse ───
+      // ─── AŞAMA 3: Lighthouse (otomatik Cloudflare tespiti) ───
       console.log('💡 Lighthouse Testleri:');
-      const lhResults = await runLighthouseTests(url, parseInt(debugPort), args.lighthouseCount, (current, total) => {
-        showProgress(current, total, `Lighthouse #${current}`);
+      const { results: lhResults } = await runLighthouseAuto(url, parseInt(debugPort), args.lighthouseCount, {
+        apiKey: args.psiKey,
+        onProgress: (current, total) => showProgress(current, total, `Lighthouse #${current}`),
+        onLog: (msg) => console.log(msg)
       });
       console.log('');
 
@@ -159,6 +163,7 @@ async function main() {
         // Masaüstü görünüm, template oranına uygun (1.97:1)
         await ssPage.setViewport({ width: 1280, height: 649 });
         await ssPage.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+        await waitThroughCloudflare(ssPage); // Challenge sayfasındaysa bekle
         await ssPage.screenshot({ path: screenshotPath, fullPage: false });
         await ssPage.close();
         console.log(`✅ Screenshot: ${screenshotPath}`);

@@ -9,10 +9,12 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+puppeteer.use(StealthPlugin());
 
-import { runColdCacheTests, runWarmCacheTests } from './lib/greenitTest.js';
-import { runLighthouseTests } from './lib/lighthouseTest.js';
+import { runColdCacheTests, runWarmCacheTests, waitThroughCloudflare } from './lib/greenitTest.js';
+import { runLighthouseTests, runLighthouseViaPSI, runLighthouseAuto } from './lib/lighthouseTest.js';
 import { createExcelReport } from './lib/excelWriter.js';
 import { createDocxReport } from './lib/reportWriter.js';
 import { normalizeUrl, sanitizeFilename, formatAuthorName } from './lib/utils.js';
@@ -50,7 +52,9 @@ let testState = {
     output: './results',
     authorName: '',
     advisorName: '',
-    reportDate: ''
+    reportDate: '',
+    psiMode: false,
+    psiKey: ''
   },
   log: []
 };
@@ -137,54 +141,74 @@ async function runAllTests() {
       broadcastState();
 
       try {
-        // ─── Cold Cache → Warm Cache SIRALI ───
-        // Sunucu rate-limiting'ini önlemek için sıralı çalıştırılıyor
-        testState.phase = 'cold';
-        testState.phaseProgress = 0;
-        testState.phaseTotal = greenitCount;
+        // ─── Cold + Warm Cache ───
+        let coldResults, warmResults;
 
-        const coldOpts = {
-          shouldStop: () => shouldStop,
-          onLog: (msg, type) => addLog(msg, type),
-          onProgress: (current) => {
-            testState.phase = 'cold';
-            testState.phaseProgress = current;
-            broadcastState();
-          }
-        };
+        if (item.manualGreenit) {
+          // Kullanıcı manuel veri girdi → Puppeteer'ı atla, gerçek satırları kullan
+          coldResults = item.manualGreenit.coldResults || [];
+          warmResults = item.manualGreenit.warmResults || [];
+          addLog(`📋 Manuel GreenIT: ${coldResults.length} cold + ${warmResults.length} warm ölçüm kullanılıyor.`, 'warning');
+          testState.phase = 'cold'; testState.phaseProgress = coldResults.length; testState.phaseTotal = coldResults.length;
+          broadcastState();
+        } else {
+          testState.phase = 'cold';
+          testState.phaseProgress = 0;
+          testState.phaseTotal = greenitCount;
 
-        const warmOpts = {
-          shouldStop: () => shouldStop,
-          onLog: (msg, type) => addLog(msg, type),
-          onProgress: (current) => {
-            testState.phase = 'warm';
-            testState.phaseProgress = current;
-            broadcastState();
-          }
-        };
+          const coldOpts = {
+            shouldStop: () => shouldStop,
+            onLog: (msg, type) => addLog(msg, type),
+            onProgress: (current) => {
+              testState.phase = 'cold';
+              testState.phaseProgress = current;
+              broadcastState();
+            }
+          };
 
-        addLog(`❄️ Cold Cache başlıyor (${greenitCount} ölçüm)...`, 'info');
-        broadcastState();
-        const coldResults = await runColdCacheTests(browser, item.url, greenitCount, coldOpts);
+          const warmOpts = {
+            shouldStop: () => shouldStop,
+            onLog: (msg, type) => addLog(msg, type),
+            onProgress: (current) => {
+              testState.phase = 'warm';
+              testState.phaseProgress = current;
+              broadcastState();
+            }
+          };
+
+          addLog(`❄️ Cold Cache başlıyor (${greenitCount} ölçüm)...`, 'info');
+          broadcastState();
+          coldResults = await runColdCacheTests(browser, item.url, greenitCount, coldOpts);
+
+          if (shouldStop) { item.status = 'skipped'; continue; }
+
+          addLog(`🔥 Warm Cache başlıyor (${greenitCount} ölçüm)...`, 'info');
+          testState.phase = 'warm';
+          testState.phaseProgress = 0;
+          broadcastState();
+          warmResults = await runWarmCacheTests(browser, item.url, greenitCount, warmOpts);
+        }
 
         if (shouldStop) { item.status = 'skipped'; continue; }
 
-        addLog(`🔥 Warm Cache başlıyor (${greenitCount} ölçüm)...`, 'info');
-        testState.phase = 'warm';
-        testState.phaseProgress = 0;
-        broadcastState();
-        const warmResults = await runWarmCacheTests(browser, item.url, greenitCount, warmOpts);
-
-        if (shouldStop) { item.status = 'skipped'; continue; }
-
-        // ─── Lighthouse ───
+        // ─── Lighthouse (otomatik Cloudflare tespiti) ───
         testState.phase = 'lighthouse';
         testState.phaseProgress = 0;
         testState.phaseTotal = lighthouseCount;
         addLog(`💡 Lighthouse başlıyor (${lighthouseCount} ölçüm)...`, 'info');
         broadcastState();
 
-        const lhResults = await runLighthouseTests(item.url, parseInt(debugPort), lighthouseCount, testOpts('lighthouse', lighthouseCount));
+        const { psiKey, psiMode } = testState.settings;
+        const { results: lhResults } = await runLighthouseAuto(item.url, parseInt(debugPort), lighthouseCount, {
+          apiKey: psiKey,
+          forcePSI: psiMode,
+          shouldStop: () => shouldStop,
+          onLog: (msg, type) => addLog(msg, type),
+          onProgress: (current) => {
+            testState.phaseProgress = current;
+            broadcastState();
+          }
+        });
 
         if (shouldStop) { item.status = 'skipped'; continue; }
 
@@ -208,8 +232,17 @@ async function runAllTests() {
           // Bot tespitini atlatmak için gerçekçi tarayıcı kimliği
           await ssPage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36');
           await ssPage.setExtraHTTPHeaders({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
             'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'none',
+            'sec-fetch-user': '?1',
+            'Upgrade-Insecure-Requests': '1',
           });
           // Headless algılamasını engelle
           await ssPage.evaluateOnNewDocument(() => {
@@ -218,6 +251,7 @@ async function runAllTests() {
           // Masaüstü görünüm, template oranına uygun (1.97:1)
           await ssPage.setViewport({ width: 1280, height: 649 });
           await ssPage.goto(item.url, { waitUntil: 'networkidle2', timeout: 30000 });
+          await waitThroughCloudflare(ssPage); // Challenge sayfasındaysa bekle
           await ssPage.screenshot({ path: screenshotPath, fullPage: false });
           await ssPage.close();
         } catch (ssErr) {
@@ -329,10 +363,12 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/queue' && req.method === 'POST') {
     const data = JSON.parse(body);
     // data.urls = [{ name, url }] veya data.name + data.url
-    const urls = data.urls || [{ name: data.name, url: data.url }];
-    for (const { name, url: rawUrl } of urls) {
+    const urls = data.urls || [{ name: data.name, url: data.url, manualGreenit: data.manualGreenit }];
+    for (const { name, url: rawUrl, manualGreenit } of urls) {
       const normalUrl = normalizeUrl(rawUrl);
-      testState.queue.push({ name, url: normalUrl, status: 'pending', results: null, error: null });
+      // manualGreenit: null | { coldEcoIndex, coldRequests, coldPageSizeKB, coldDomSize,
+      //                         warmEcoIndex, warmRequests, warmPageSizeKB, warmDomSize }
+      testState.queue.push({ name, url: normalUrl, status: 'pending', results: null, error: null, manualGreenit: manualGreenit || null });
     }
     addLog(`${urls.length} URL kuyruğa eklendi.`, 'info');
     broadcastState();
@@ -352,6 +388,22 @@ const server = http.createServer(async (req, res) => {
     } else {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Silinemez (çalışıyor veya tamamlandı)' }));
+    }
+    return;
+  }
+
+  // ─── Manuel GreenIT verisi ata ───
+  if (url.pathname.match(/^\/api\/queue\/\d+\/manual-greenit$/) && req.method === 'POST') {
+    const idx = parseInt(url.pathname.split('/')[3]);
+    const item = testState.queue[idx];
+    if (item && item.status === 'pending') {
+      item.manualGreenit = JSON.parse(body);
+      broadcastState();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } else {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Öğe bulunamadı veya beklemede değil' }));
     }
     return;
   }
@@ -380,6 +432,8 @@ const server = http.createServer(async (req, res) => {
     if (data.authorName !== undefined) testState.settings.authorName = data.authorName;
     if (data.advisorName !== undefined) testState.settings.advisorName = data.advisorName;
     if (data.reportDate !== undefined) testState.settings.reportDate = data.reportDate;
+    if (data.psiMode !== undefined) testState.settings.psiMode = !!data.psiMode;
+    if (data.psiKey !== undefined) testState.settings.psiKey = data.psiKey;
     broadcastState();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, settings: testState.settings }));

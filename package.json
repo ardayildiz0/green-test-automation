@@ -10,10 +10,12 @@
     "test": "node index.js --url https://example.com --name Test --count 10 --output ./test-results"
   },
   "dependencies": {
-    "lighthouse": "^12.0.0",
-    "puppeteer": "^23.0.0",
+    "chalk": "^5.3.0",
     "exceljs": "^4.4.0",
     "jszip": "^3.10.1",
-    "chalk": "^5.3.0"
+    "lighthouse": "^12.0.0",
+    "puppeteer": "^23.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
