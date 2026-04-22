@@ -59,6 +59,16 @@ AFAD|https://www.afad.gov.tr
 Adalet Bakanlığı|https://www.adalet.gov.tr
 ```
 
+### 3. Raporları Yeniden Oluşturma
+
+Yeni ölçüm almadan, mevcut `_results.xlsx` dosyalarından `_rapor.docx` dosyalarını yeniden üretir. `lib/reportWriter.js` üzerinde değişiklik yapıldığında (şablon düzeni, başlık çevirileri, tablo formatı vs.) tüm raporları toplu güncellemek için kullanılır.
+
+```bash
+node regenerate-reports.js
+```
+
+`results/` klasörü taranır; her `_results.xlsx` için Cold/Warm Cache GreenIT, Lighthouse Metrics ve Summary sheet'leri okunur, varsa eşleşen `_screenshot.png` kullanılır ve `_rapor.docx` üzerine yazılır. Tarayıcı açılmaz, ölçüm tekrarlanmaz — sadece Word çıktısı yenilenir.
+
 ## Çıktı
 
 Her kurum için iki dosya oluşturulur:
@@ -108,19 +118,20 @@ Kaynak: [EcoIndex.fr](https://www.ecoindex.fr/en/how-it-works/) / [cnumr/GreenIT
 ```
 green-test-automation/
 ├── package.json
-├── index.js              # CLI giriş noktası
-├── server.js             # Web arayüzü sunucusu
+├── index.js                # CLI giriş noktası
+├── regenerate-reports.js   # Mevcut xlsx'lerden docx raporları yeniden üretir
+├── server.js               # Web arayüzü sunucusu
 ├── public/
-│   └── index.html        # Web arayüzü
+│   └── index.html          # Web arayüzü
 ├── lib/
-│   ├── utils.js          # EcoIndex formülü, CLI parser, yardımcılar
-│   ├── greenitTest.js    # Puppeteer ile GreenIT metrikleri (cold/warm)
-│   ├── lighthouseTest.js # Lighthouse programmatic API
-│   ├── excelWriter.js    # ExcelJS ile kurum bazında rapor
-│   └── reportWriter.js   # DOCX rapor oluşturma (docx-js)
+│   ├── utils.js            # EcoIndex formülü, CLI parser, yardımcılar
+│   ├── greenitTest.js      # Puppeteer ile GreenIT metrikleri (cold/warm)
+│   ├── lighthouseTest.js   # Lighthouse programmatic API
+│   ├── excelWriter.js      # ExcelJS ile kurum bazında rapor
+│   └── reportWriter.js     # DOCX rapor oluşturma (docx-js)
 ├── template/
-│   └── template.xlsx     # Orijinal Excel şablonu
-└── urls-example.txt      # Örnek URL dosyası
+│   └── template.xlsx       # Orijinal Excel şablonu
+└── urls-example.txt        # Örnek URL dosyası
 ```
 
 ## Gereksinimler
