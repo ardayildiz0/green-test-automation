@@ -122,6 +122,12 @@
       color: var(--text);
       font-size: 13px;
     }
+    .settings-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
 
     /* ─── URL EKLEME ─── */
     .add-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
@@ -238,6 +244,57 @@
       transition: opacity 0.15s;
     }
     .queue-item:hover .qi-delete { opacity: 1; }
+
+    .qi-manual-btn {
+      opacity: 0;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--orange);
+      color: var(--orange);
+      background: transparent;
+      transition: opacity 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .queue-item:hover .qi-manual-btn { opacity: 1; }
+    .qi-manual-btn.has-data { opacity: 1; background: var(--orange-dim); }
+
+    /* ─── MANUEL GREENİT MODAL ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      width: 460px;
+      max-width: 95vw;
+    }
+    .modal h3 { font-size: 15px; margin-bottom: 4px; }
+    .modal .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 20px; }
+    .modal-section { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--orange); margin: 14px 0 8px; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-field label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+    .modal-field input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      color: var(--text);
+      font-size: 13px;
+    }
+    .modal-field input:focus { outline: none; border-color: var(--orange); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
 
     /* ─── KONTROL BUTONLARI ─── */
     .controls {
@@ -512,6 +569,14 @@
         <label>Çıktı Klasörü</label>
         <input type="text" id="outputDir" value="./results">
       </div>
+      <div class="settings-row" style="margin-top: 6px;">
+        <label style="color: var(--blue); font-size:12px;">PSI Zorunlu <span style="font-size:10px;opacity:0.7">(Lighthouse yerine)</span></label>
+        <input type="checkbox" id="psiMode" onchange="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <label style="color: var(--blue); font-size:12px;">PSI API Key <span style="font-size:10px;opacity:0.7">(opsiyonel)</span></label>
+        <input type="text" id="psiKey" placeholder="AIza..." style="width:120px;font-family:monospace;font-size:11px;">
+      </div>
       <div style="text-align: right; margin-top: 8px;">
         <button class="btn btn-ghost btn-sm" onclick="saveSettings()">Kaydet</button>
       </div>
@@ -643,6 +708,37 @@
   </div>
 </div>
 
+<!-- ═══ MANUEL GREENİT MODAL ═══ -->
+<div class="modal-overlay" id="manualModal">
+  <div class="modal" style="width:600px;">
+    <h3>Manuel GreenIT Verisi</h3>
+    <p class="modal-sub">GreenIT Analysis eklentisindeki tabloyu seç, kopyala (Ctrl+C) ve aşağıya yapıştır. Başlık satırı ve son ortalama satırı otomatik atlanır.</p>
+
+    <div class="modal-section">❄️ Cold Cache</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+      <label style="font-size:11px;color:var(--text2);white-space:nowrap;">CSV dosyası yükle:</label>
+      <input type="file" id="m_coldFile" accept=".csv,.tsv,.txt" style="font-size:11px;color:var(--text2);" onchange="loadFile('cold')">
+    </div>
+    <textarea id="m_coldPaste" class="bulk-textarea" style="height:100px;font-size:11px;"
+      placeholder="GreenIT tablosunu yapıştır (TSV) veya CSV dosyası yükle&#10;Date&#9;Url&#9;Request number&#9;Size(kb)&#9;Dom size...&#10;24.03.2026 17:00&#9;https://...&#9;129&#9;10368&#9;1021&#9;2,54&#9;3,81&#9;22,87&#9;F"></textarea>
+    <div id="m_coldInfo" style="font-size:11px;color:var(--text2);margin-top:2px;min-height:16px;"></div>
+
+    <div class="modal-section">🔥 Warm Cache</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+      <label style="font-size:11px;color:var(--text2);white-space:nowrap;">CSV dosyası yükle:</label>
+      <input type="file" id="m_warmFile" accept=".csv,.tsv,.txt" style="font-size:11px;color:var(--text2);" onchange="loadFile('warm')">
+    </div>
+    <textarea id="m_warmPaste" class="bulk-textarea" style="height:100px;font-size:11px;"
+      placeholder="GreenIT tablosunu yapıştır (TSV) veya CSV dosyası yükle&#10;Date&#9;Url&#9;Request number&#9;Size(kb)&#9;Dom size...&#10;24.03.2026 17:00&#9;https://...&#9;129&#9;10368&#9;1021&#9;2,54&#9;3,81&#9;22,87&#9;F"></textarea>
+    <div id="m_warmInfo" style="font-size:11px;color:var(--text2);margin-top:2px;min-height:16px;"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeManualModal()">İptal</button>
+      <button class="btn btn-orange" onclick="saveManualData()" style="background:var(--orange);color:#000;">Kaydet</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════
 // STATE
@@ -654,7 +750,7 @@ let state = {
   phase: '',
   phaseProgress: 0,
   phaseTotal: 0,
-  settings: { greenitCount: 20, lighthouseCount: 10, output: './results', authorName: '' }
+  settings: { greenitCount: 20, lighthouseCount: 10, output: './results', authorName: '', psiKey: '' }
 };
 
 // ═══════════════════════════════════════
@@ -733,6 +829,9 @@ function renderQueue() {
   empty.classList.add('hidden');
   list.innerHTML = state.queue.map((item, i) => {
     const icons = { pending: '⏳', running: '▶️', done: '✅', error: '❌', skipped: '⏭️' };
+    const hasManual = !!item.manualGreenit;
+    const manualBtnClass = `qi-manual-btn${hasManual ? ' has-data' : ''}`;
+    const manualBtnLabel = hasManual ? '📋 Manuel ✓' : '📋 Manuel Gir';
     return `
       <div class="queue-item ${item.status}">
         <div class="qi-status ${item.status}">${icons[item.status] || '⏳'}</div>
@@ -740,6 +839,7 @@ function renderQueue() {
           <div class="qi-name">${esc(item.name)}</div>
           <div class="qi-url">${esc(item.url)}</div>
         </div>
+        ${item.status === 'pending' ? `<button class="${manualBtnClass}" onclick="openManualModal(${i})">${manualBtnLabel}</button>` : ''}
         ${item.status === 'pending' ? `<span class="qi-delete" onclick="deleteFromQueue(${i})">✕</span>` : ''}
       </div>
     `;
@@ -811,6 +911,8 @@ function renderSettings() {
   document.getElementById('lighthouseCount').value = state.settings.lighthouseCount;
   document.getElementById('outputDir').value = state.settings.output;
   if (state.settings.authorName) document.getElementById('authorName').value = state.settings.authorName;
+  document.getElementById('psiMode').checked = !!state.settings.psiMode;
+  document.getElementById('psiKey').value = state.settings.psiKey || '';
 }
 
 let logLineCount = 0;
@@ -906,7 +1008,9 @@ async function saveSettings() {
       greenitCount: document.getElementById('greenitCount').value,
       lighthouseCount: document.getElementById('lighthouseCount').value,
       output: document.getElementById('outputDir').value,
-      authorName: formattedName
+      authorName: formattedName,
+      psiMode: document.getElementById('psiMode').checked,
+      psiKey: document.getElementById('psiKey').value.trim()
     })
   });
 }
@@ -938,14 +1042,139 @@ document.getElementById('inputName').addEventListener('keypress', (e) => { if (e
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-  
-  // Custom Emoji Yazar Seçimi
-  function setAuthorEmoji(name) {
-    const authorInput = document.getElementById('authorName');
-    authorInput.value = name;
-    saveSettings();
-    alert(name);
+// Custom Emoji Yazar Seçimi
+function setAuthorEmoji(name) {
+  const authorInput = document.getElementById('authorName');
+  authorInput.value = name;
+  saveSettings();
+  alert(name);
+}
+
+// ═══════════════════════════════════════
+// MANUEL GREENİT MODAL
+// ═══════════════════════════════════════
+let manualModalIndex = -1;
+
+/**
+ * GreenIT export dosyasını parse eder.
+ * Otomatik format tespiti: tab → TSV (virgül ondalık), noktalı virgül → CSV (nokta ondalık).
+ * Başlık satırı, özet/ortalama satırı ve boş URL'ler otomatik atlanır.
+ */
+function parseGreenITExport(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length === 0) return [];
+
+  // Format tespiti: ilk satırda tab varsa TSV, yoksa CSV (;)
+  const sep = lines[0].includes('\t') ? '\t' : ';';
+  // Ondalık: TSV'de virgül, CSV'de nokta kullanılır
+  const num = (s) => parseFloat((s || '0').replace(',', '.')) || 0;
+
+  // CSV quoted field parser — "değer" → değer
+  const unquote = (s) => s.trim().replace(/^"|"$/g, '');
+
+  const results = [];
+  for (const line of lines) {
+    const cols = line.split(sep).map(unquote);
+
+    // Başlık satırı
+    if (!cols[0] || cols[0] === 'Date' || cols[0] === 'Tarih') continue;
+
+    // Özet/ortalama satırı: URL kolonu boş veya http ile başlamıyor
+    if (!cols[1] || !cols[1].startsWith('http')) continue;
+
+    results.push({
+      measurementNo: results.length + 1,
+      date:         cols[0],
+      requestCount: parseInt(cols[2]) || 0,
+      pageSizeKB:   num(cols[3]),
+      domSize:      parseInt(cols[4]) || 0,
+      co2:          num(cols[5]),
+      water:        num(cols[6]),
+      ecoIndex:     num(cols[7]),
+      grade:        cols[8] || '-'
+    });
   }
+
+  return results;
+}
+
+function loadFile(cache) {
+  const fileInput = document.getElementById(`m_${cache}File`);
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById(`m_${cache}Paste`).value = e.target.result;
+    updatePasteInfo(`m_${cache}Paste`, `m_${cache}Info`);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function updatePasteInfo(textareaId, infoId) {
+  const text = document.getElementById(textareaId).value;
+  const info = document.getElementById(infoId);
+  if (!text.trim()) { info.textContent = ''; return; }
+  const rows = parseGreenITExport(text);
+  if (rows.length === 0) {
+    info.style.color = 'var(--red)';
+    info.textContent = '⚠ Geçerli satır bulunamadı — tabloyu başlık satırıyla birlikte kopyala.';
+  } else {
+    const avgEco = (rows.reduce((s, r) => s + r.ecoIndex, 0) / rows.length).toFixed(2);
+    info.style.color = 'var(--green)';
+    info.textContent = `✓ ${rows.length} ölçüm okundu — Ort. EcoIndex: ${avgEco}`;
+  }
+}
+
+function openManualModal(idx) {
+  manualModalIndex = idx;
+  const item = state.queue[idx];
+  const d = item.manualGreenit || {};
+
+  document.getElementById('m_coldPaste').value = d._coldRaw || '';
+  document.getElementById('m_warmPaste').value = d._warmRaw || '';
+  document.getElementById('m_coldInfo').textContent = '';
+  document.getElementById('m_warmInfo').textContent = '';
+
+  if (d._coldRaw) updatePasteInfo('m_coldPaste', 'm_coldInfo');
+  if (d._warmRaw) updatePasteInfo('m_warmPaste', 'm_warmInfo');
+
+  document.getElementById('manualModal').classList.add('open');
+}
+
+function closeManualModal() {
+  document.getElementById('manualModal').classList.remove('open');
+  manualModalIndex = -1;
+}
+
+async function saveManualData() {
+  const coldRaw = document.getElementById('m_coldPaste').value;
+  const warmRaw = document.getElementById('m_warmPaste').value;
+
+  const coldResults = parseGreenITExport(coldRaw);
+  const warmResults = parseGreenITExport(warmRaw);
+
+  if (coldResults.length === 0 && warmResults.length === 0) {
+    alert('Hiç geçerli satır okunamadı. Tabloyu başlık satırıyla birlikte kopyaladığından emin ol.');
+    return;
+  }
+
+  await fetch(`/api/queue/${manualModalIndex}/manual-greenit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ coldResults, warmResults, _coldRaw: coldRaw, _warmRaw: warmRaw })
+  });
+
+  closeManualModal();
+}
+
+// Yapıştırınca anlık önizleme
+document.getElementById('m_coldPaste').addEventListener('input', () => updatePasteInfo('m_coldPaste', 'm_coldInfo'));
+document.getElementById('m_warmPaste').addEventListener('input', () => updatePasteInfo('m_warmPaste', 'm_warmInfo'));
+
+// Modal dışına tıklayınca kapat
+document.getElementById('manualModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('manualModal')) closeManualModal();
+});
 </script>
 
 </body>
