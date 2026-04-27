@@ -18,11 +18,13 @@ import { formatAuthorName } from './lib/utils.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = path.join(__dirname, 'results');
 
-// Config'ten yazar adını al
+// Config'ten yazar adını ve e-postasını al
 let authorName = 'Arda Yıldız';
+let authorEmail = 'arda730a@gmail.com';
 try {
   const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf-8'));
   if (config.author) authorName = config.author;
+  if (config.authorEmail) authorEmail = config.authorEmail;
 } catch (e) {
   // use default
 }
@@ -96,7 +98,10 @@ async function regenerateOne(xlsxPath) {
     warmResults,
     lhResults,
     screenshot,
-    formatAuthorName(authorName)
+    formatAuthorName(authorName),
+    undefined, // advisorName
+    undefined, // reportDate
+    authorEmail
   );
 
   return { institutionName, docxPath, hasScreenshot: !!screenshot, coldN: coldResults.length, warmN: warmResults.length, lhN: lhResults.length };
